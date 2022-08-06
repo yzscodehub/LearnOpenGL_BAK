@@ -9,6 +9,7 @@
 #include "Renderer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "VertexArray.h"
 
 struct  ShaderProgramSource
 {
@@ -172,29 +173,16 @@ int main(void)
     };
 
     // Have to set VAO before binding attributes
-    unsigned int VAO;
+    /*unsigned int VAO;
     GLCall(glGenVertexArrays(1, &VAO));
-    GLCall(glBindVertexArray(VAO));
-
-    // 创建一个VBO并copy数据
-	/*unsigned int buffer;
-	GLCall(glGenBuffers(1, &buffer));
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(float), positions, GL_STATIC_DRAW));*/
-
+    GLCall(glBindVertexArray(VAO));*/
+    VertexArray VA; 
     VertexBuffer VB(positions, 2 * 4 * sizeof(float));
-
-    // 定义顶点的布局
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
-    GLCall(glEnableVertexAttribArray(0));
-
-    // 定义一个IBO并copy数据
-	/*unsigned int IBO;
-	GLCall(glGenBuffers(1, &IBO));
-	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO));
-	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));*/
-
     IndexBuffer IB(indices, 6);
+
+    VertexArrayLayout layout;
+    layout.Push<float>(2);
+    VA.AddBuffer(VB, layout);
 
     ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
     std::cout << "VERTEX" << std::endl;
@@ -208,19 +196,8 @@ int main(void)
     GLCall(unsigned int u_Color = glGetUniformLocation(shaderProgram, "u_Color"));
     ASSERT(u_Color != -1);
 
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     float red = 0.0f;
     float step = 0.05f;
-
-    //GLCall(glUseProgram(0));
-    //GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    //GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-    //GLCall(glBindVertexArray(0));
-
-    //GLCall(glUseProgram(shaderProgram));
-    //GLCall(glBindVertexArray(VAO));
-    //GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO));
 
     IB.Bind();
 
@@ -243,12 +220,6 @@ int main(void)
         //glDrawArrays(GL_TRIANGLES, 0, 6);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
-        /*glBegin(GL_TRIANGLES);
-        glVertex2f( 0.0f,  0.5f);
-        glVertex2f(-0.5f, -0.5f);
-        glVertex2f( 0.5f, -0.5f);
-        glEnd();*/
-
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
@@ -260,9 +231,6 @@ int main(void)
         red += step;
     }
 
-    //GLCall(glDeleteVertexArrays(1, &VertexArrayID));
-    //GLCall(glDeleteBuffers(1, &buffer));
-    //GLCall(glDeleteBuffers(1, &IBO));
     GLCall(glDeleteProgram(shaderProgram));
 
     // Close OpenGL window and terminate GLFW
