@@ -10,90 +10,7 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "VertexArray.h"
-
-struct  ShaderProgramSource
-{
-    std::string VertexSource;
-    std::string FragmentSource;
-};
-static ShaderProgramSource ParseShader(const std::string& filePath)
-{
-    std::ifstream stream(filePath);
-    std::string line;
-    std::stringstream ss[2];
-
-    enum class ShaderType
-    {
-        None = -1,
-        VERTEX = 0,
-        FRAGMENT = 1
-    };
-
-    ShaderType type;
-    while (std::getline(stream, line))
-    {
-        if (line.find("#shader") != std::string::npos)
-        {
-            if (line.find("vertex") != std::string::npos)
-            {
-                type = ShaderType::VERTEX;
-            }
-            else if (line.find("fragment") != std::string::npos)
-            {
-                type = ShaderType::FRAGMENT;
-            }
-        }
-        else
-        {
-            ss[(int)type] << line << '\n';
-        }
-    }
-
-    return { ss[0].str(), ss[1].str() };
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string& source)
-{
-    GLCall(unsigned int id = glCreateShader(type));
-    const char* src = source.c_str();
-    GLCall(glShaderSource(id, 1, &src, nullptr));
-    GLCall(glCompileShader(id));
-
-    // 错误检查
-    int result;
-    GLCall(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
-    if (result == GL_FALSE)
-    {
-        int length;
-        GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
-        char* message = (char*)alloca(length * sizeof(char));
-        GLCall(glGetShaderInfoLog(id, length, &length, message));
-        std::cout << "Failed to Compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << std::endl;
-        std::cout << message << std::endl;
-        GLCall(glDeleteShader(id));
-        return 0;
-    }
-
-    return id;
-}
-
-static unsigned int CreateShaderProgram(const std::string& vertexShader, const std::string fragmentShader)
-{
-    // 创建一个着色器程序
-    GLCall(unsigned int program = glCreateProgram());
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-    GLCall(glAttachShader(program, vs));
-    GLCall(glAttachShader(program, fs));
-    GLCall(glLinkProgram(program));
-    GLCall(glValidateProgram(program));
-
-    GLCall(glDeleteShader(vs));
-    GLCall(glDeleteShader(fs));
-
-    return program;
-}
+#include "Shader.h"
 
 int main(void)
 {
@@ -184,18 +101,8 @@ int main(void)
     layout.Push<float>(2);
     VA.AddBuffer(VB, layout);
 
-    ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
-    std::cout << "VERTEX" << std::endl;
-    std::cout << source.VertexSource << std::endl;
-    std::cout << "FRAGMENT" << std::endl;
-    std::cout << source.FragmentSource << std::endl;
 
-    unsigned int shaderProgram = CreateShaderProgram(source.VertexSource, source.FragmentSource);
-    GLCall(glUseProgram(shaderProgram));
-
-    GLCall(unsigned int u_Color = glGetUniformLocation(shaderProgram, "u_Color"));
-    ASSERT(u_Color != -1);
-
+    Shader shader("res/shaders/Basic.shader");
     float red = 0.0f;
     float step = 0.05f;
 
@@ -209,8 +116,8 @@ int main(void)
 
         // set shader and set uniform color
         //GLCall(glUseProgram(shaderProgram));
-        // set uniform color 
-        GLCall(glUniform4f(u_Color, red, 0.3, 0.8, 1.0));
+        // set uniform color
+        shader.SetUniform4f("u_Color", red, 0.3f, 0.8f, 1.0f);
 
         // Instead of binding vertex buffer, attrib pointer, just bind Vertex Array Object
         //GLCall(glBindVertexArray(VAO));
@@ -230,8 +137,6 @@ int main(void)
             step *= -1.0;
         red += step;
     }
-
-    GLCall(glDeleteProgram(shaderProgram));
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
